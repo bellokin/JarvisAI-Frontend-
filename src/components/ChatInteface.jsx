@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ThinkingBubble from "./ThinkingBubble"; // Import the new component
+import { motion } from "framer-motion"; // Import Framer Motion
+import { BsLightbulbFill } from "react-icons/bs"; // Bulb Icon
+
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState([]);
@@ -11,6 +14,8 @@ const ChatInterface = () => {
   const recognitionRef = useRef(null); // Reference for SpeechRecognition
   const socketRelayRef = useRef(null); // WebSocket reference for relay control
   const [popupText, setPopupText] = useState(''); // For dynamic popup text
+  const [isBulbOn, setIsBulbOn] = useState(false); // UI bulb state
+
 
   // Initialize SpeechRecognition
   useEffect(() => {
@@ -35,7 +40,8 @@ const ChatInterface = () => {
 
       recognitionRef.current = recognition;
       recognition.start(); // Start listening immediately on load
-    } else {
+    } 
+    else {
       console.warn('SpeechRecognition is not supported in this browser.');
     }
   }, []);
@@ -58,6 +64,8 @@ const ChatInterface = () => {
 
     const newMessage = { type: 'user', text: inputText };
     setMessages((prev) => [...prev, newMessage]);
+    
+    setUserInput(""); // ✅ Clears the input field
 
     setIsThinking(true); // Show the thinking bubble
 
@@ -79,7 +87,14 @@ const ChatInterface = () => {
       setTimeout(() => setShowPopup(false), 3000);
 
       if (data.action === 'turn_on' || data.action === 'turn_off') {
+        if (data.action === 'turn_on') {
+          setIsBulbOn(true);
+        } else if (data.action === 'turn_off') { 
+        setIsBulbOn(false);
+        }  
+
         sendRelayCommand(data.action);
+  
       }
     } catch (error) {
       console.error('Error interacting with AI:', error);
@@ -101,7 +116,7 @@ const ChatInterface = () => {
   };
   
   const speakText = (text) => {
-    console.log("Speak ggegg");
+  
     const utterance = new SpeechSynthesisUtterance(text);
 
     // Function to handle voice selection and speaking
@@ -149,14 +164,94 @@ const ChatInterface = () => {
 
   const handleStartListening = () => {
     if (recognitionRef.current) {
-      recognitionRef.current.start();
+      if (isListening) {
+        recognitionRef.current.stop();  // ✅ Stop recognition if it's running
+        setIsListening(false);
+        console.log("Speech recognition stopped");
+      } else {
+        recognitionRef.current.start(); // ✅ Start recognition if it's not running
+        setIsListening(true);
+        console.log("Speech recognition started");
+      }
     }
   };
+  
 
   return (
     <div className="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-6">
       <div className="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
         <h1 className="text-2xl font-bold text-center mb-4">J.A.R.V.I.S</h1>
+
+        <div className="relative flex justify-center items-center">
+          {/* SVG Wires */}
+          <svg
+            width="200"
+            height="100"
+            viewBox="0 0 200 100"
+            className="absolute"
+          >
+            {/* Left Wire */}
+            <motion.line
+              x1="0"
+              y1="50"
+              x2="100"
+              y2="50"
+              stroke={isBulbOn ? "#FFD700" : "#555"}
+              strokeWidth="4"
+              strokeDasharray="10 5"
+              initial={{ strokeDashoffset: 20 }}
+              animate={{ strokeDashoffset: 0 }}
+              transition={{
+                duration: 0.8,
+                repeat: isBulbOn ? Infinity : 0,
+                ease: "linear",
+              }}
+            />
+            {/* Right Wire */}
+            <motion.line
+              x1="100"
+              y1="50"
+              x2="200"
+              y2="50"
+              stroke={isBulbOn ? "#FFD700" : "#555"}
+              strokeWidth="4"
+              strokeDasharray="10 5"
+              initial={{ strokeDashoffset: 20 }}
+              animate={{ strokeDashoffset: 0 }}
+              transition={{
+                duration: 0.8,
+                repeat: isBulbOn ? Infinity : 0,
+                ease: "linear",
+              }}
+            />
+          </svg>
+
+          {/* Bulb Animation */}
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0.5 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className={`relative flex items-center justify-center p-6 rounded-full ${
+              isBulbOn ? "bg-yellow-400 shadow-xl shadow-yellow-300" : "bg-gray-300"
+            }`}
+          >
+            <BsLightbulbFill
+              size={50}
+              className={`transition-colors duration-500 ${
+                isBulbOn ? "text-yellow-500" : "text-gray-500"
+              }`}
+            />
+            {isBulbOn && (
+              <motion.div
+                className="absolute inset-0 bg-yellow-200 opacity-40 rounded-full blur-2xl"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+              />
+            )}
+          </motion.div>
+        </div>
+
         <div className="h-64 overflow-y-auto border border-gray-300 p-4 rounded mb-4">
           {messages.map((msg, idx) => (
             <div

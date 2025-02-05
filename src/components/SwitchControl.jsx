@@ -66,8 +66,8 @@ const SwitchControlComponent = () => {
   return (
     <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
       <h2 className="text-xl font-semibold text-blue-600 mb-4">Switch Control</h2>
-      <p className="text-sm text-gray-500 mb-2">WebSocket Status: {isConnectedRelay ? 'Connected' : 'Disconnected'}</p>
-      <p className="text-sm text-gray-500 mb-4">Switch State: <span className="font-bold text-gray-800">{switchState}</span></p>
+      <p className="text-sm text-gray-500 mb-2">House 1A  Status: {isConnectedRelay ? 'Connected' : 'Disconnected'}</p>
+      <p className="text-sm text-gray-500 mb-4">House 1A  Bulb State : <span className="font-bold text-gray-800">{switchState}</span></p>
       <ChatInterface/>
     </div>
   );
