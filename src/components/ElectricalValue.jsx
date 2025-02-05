@@ -14,6 +14,9 @@ const ElectricalComponent = () => {
     socketCurrent.onopen = () => {
       setIsConnectedCurrent(true);
       console.log('Current WebSocket connected');
+  const randomData = { current: (Math.random() * 10).toFixed(2), voltage: (Math.random() * 240).toFixed(2) };
+        setCurrentValues(randomData);
+     
     };
 
     socketCurrent.onmessage = (event) => {
