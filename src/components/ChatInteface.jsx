@@ -1,21 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
-import ThinkingBubble from "./ThinkingBubble"; // Import the new component
-import { motion } from "framer-motion"; // Import Framer Motion
-import { BsLightbulbFill } from "react-icons/bs"; // Bulb Icon
-
+import { motion } from 'framer-motion';
+import { BsMicFill, BsSend } from 'react-icons/bs';
+import { FaRobot } from 'react-icons/fa';
+import { IoPerson } from 'react-icons/io5';
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState('');
-  const [isListening, setIsListening] = useState(false); // For speech-to-text status
-  const [isThinking, setIsThinking] = useState(false); // For AI processing status
+  const [isListening, setIsListening] = useState(false);
+  const [isThinking, setIsThinking] = useState(false); // Added thinking state
+  const recognitionRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
+  // Popup states
   const [showPopup, setShowPopup] = useState(false); // For popup visibility
-  const recognitionRef = useRef(null); // Reference for SpeechRecognition
-  const socketRelayRef = useRef(null); // WebSocket reference for relay control
   const [popupText, setPopupText] = useState(''); // For dynamic popup text
+
+  // Relay WebSocket and bulb state
+  const socketRelayRef = useRef(null); // WebSocket reference for relay control
   const [isBulbOn, setIsBulbOn] = useState(false); // UI bulb state
 
+  // Auto-scroll to the latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // Initialize SpeechRecognition
   useEffect(() => {
@@ -40,8 +48,7 @@ const ChatInterface = () => {
 
       recognitionRef.current = recognition;
       recognition.start(); // Start listening immediately on load
-    } 
-    else {
+    } else {
       console.warn('SpeechRecognition is not supported in this browser.');
     }
   }, []);
@@ -59,15 +66,15 @@ const ChatInterface = () => {
       if (socketRelay) socketRelay.close();
     };
   }, []);
+
   const handleSend = async (inputText) => {
     if (!inputText.trim()) return;
 
     const newMessage = { type: 'user', text: inputText };
     setMessages((prev) => [...prev, newMessage]);
-    
-    setUserInput(""); // ✅ Clears the input field
+    setUserInput(""); // Clears the input field
 
-    setIsThinking(true); // Show the thinking bubble
+    setIsThinking(true); // Show the thinking indicator
 
     try {
       const response = await fetch('https://jarvisai-backend.onrender.com/aiLoad', {
@@ -79,31 +86,27 @@ const ChatInterface = () => {
       const data = await response.json();
       const aiMessage = { type: 'ai', text: data.response };
       setMessages((prev) => [...prev, aiMessage]);
- 
+
       speakText(data.response); // Ensure text-to-speech is called after receiving AI response
 
       setPopupText(data.response);
-     
+      setShowPopup(true);
       setTimeout(() => setShowPopup(false), 3000);
 
       if (data.action === 'turn_on' || data.action === 'turn_off') {
         if (data.action === 'turn_on') {
           setIsBulbOn(true);
-        } else if (data.action === 'turn_off') { 
-        setIsBulbOn(false);
-        }  
-
+        } else if (data.action === 'turn_off') {
+          setIsBulbOn(false);
+        }
         sendRelayCommand(data.action);
-  
       }
     } catch (error) {
       console.error('Error interacting with AI:', error);
     } finally {
-      setIsThinking(false); // Hide the thinking bubble after response
+      setIsThinking(false); // Hide the thinking indicator after response
     }
   };
-
-
 
   const sendRelayCommand = (action) => {
     const socketRelay = socketRelayRef.current;
@@ -114,9 +117,8 @@ const ChatInterface = () => {
       console.error('Relay WebSocket is not connected');
     }
   };
-  
+
   const speakText = (text) => {
-  
     const utterance = new SpeechSynthesisUtterance(text);
 
     // Function to handle voice selection and speaking
@@ -126,23 +128,19 @@ const ChatInterface = () => {
       // Try to find a female voice
       const femaleVoice = voices.find((voice) => voice.name.toLowerCase().includes('female'));
 
-      // If a female voice is found, use it
-      if (femaleVoice) {
-        utterance.voice = femaleVoice;
-
-      } else {
-        // If no female voice is found, fallback to the first available voice (could be male)
-        utterance.voice = voices[0];
-      }
+      // If a female voice is found, use it; otherwise, fallback to the first available voice
+      utterance.voice = femaleVoice || voices[0];
 
       // If voices are not loaded yet, set the callback to get them after they're loaded
       if (voices.length === 0) {
         window.speechSynthesis.onvoiceschanged = () => {
           const updatedVoices = window.speechSynthesis.getVoices();
-          const femaleVoice = updatedVoices.find((voice) => voice.name.toLowerCase().includes('female'));
-          utterance.voice = femaleVoice || updatedVoices[0]; // Default to first available if no female voice
+          const femaleVoiceUpdated = updatedVoices.find((voice) =>
+            voice.name.toLowerCase().includes('female')
+          );
+          utterance.voice = femaleVoiceUpdated || updatedVoices[0]; // Default to first available if no female voice
           window.speechSynthesis.speak(utterance);
-           setShowPopup(true);
+          setShowPopup(true);
           console.log("Voices loaded, speaking...");
         };
         return; // Exit early if voices aren't loaded yet
@@ -161,133 +159,88 @@ const ChatInterface = () => {
     setVoice();
   };
 
-
   const handleStartListening = () => {
     if (recognitionRef.current) {
       if (isListening) {
-        recognitionRef.current.stop();  // ✅ Stop recognition if it's running
+        recognitionRef.current.stop(); // Stop recognition if it's running
         setIsListening(false);
         console.log("Speech recognition stopped");
       } else {
-        recognitionRef.current.start(); // ✅ Start recognition if it's not running
+        recognitionRef.current.start(); // Start recognition if it's not running
         setIsListening(true);
         console.log("Speech recognition started");
       }
     }
   };
-  
 
   return (
-    <div className="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-6">
-      <div className="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
-        <h1 className="text-2xl font-bold text-center mb-4">J.A.R.V.I.S</h1>
-
-        <div className="relative flex justify-center items-center">
-          {/* SVG Wires */}
-          <svg
-            width="200"
-            height="100"
-            viewBox="0 0 200 100"
-            className="absolute"
-          >
-            {/* Left Wire */}
-            <motion.line
-              x1="0"
-              y1="50"
-              x2="100"
-              y2="50"
-              stroke={isBulbOn ? "#FFD700" : "#555"}
-              strokeWidth="4"
-              strokeDasharray="10 5"
-              initial={{ strokeDashoffset: 20 }}
-              animate={{ strokeDashoffset: 0 }}
-              transition={{
-                duration: 0.8,
-                repeat: isBulbOn ? Infinity : 0,
-                ease: "linear",
-              }}
-            />
-            {/* Right Wire */}
-            <motion.line
-              x1="100"
-              y1="50"
-              x2="200"
-              y2="50"
-              stroke={isBulbOn ? "#FFD700" : "#555"}
-              strokeWidth="4"
-              strokeDasharray="10 5"
-              initial={{ strokeDashoffset: 20 }}
-              animate={{ strokeDashoffset: 0 }}
-              transition={{
-                duration: 0.8,
-                repeat: isBulbOn ? Infinity : 0,
-                ease: "linear",
-              }}
-            />
-          </svg>
-
-          {/* Bulb Animation */}
+    <div className="flex flex-col h-screen bg-gray-100">
+      <header className="bg-white shadow-md p-4 text-center text-xl font-semibold border-b">
+        J.A.R.V.I.S Chat {isBulbOn ? '💡' : '🔌'}
+      </header>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 relative">
+        {messages.map((msg, idx) => (
           <motion.div
-            initial={{ scale: 0.8, opacity: 0.5 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className={`relative flex items-center justify-center p-6 rounded-full ${
-              isBulbOn ? "bg-yellow-400 shadow-xl shadow-yellow-300" : "bg-gray-300"
-            }`}
+            key={idx}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className={`flex items-start ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <BsLightbulbFill
-              size={50}
-              className={`transition-colors duration-500 ${
-                isBulbOn ? "text-yellow-500" : "text-gray-500"
-              }`}
-            />
-            {isBulbOn && (
-              <motion.div
-                className="absolute inset-0 bg-yellow-200 opacity-40 rounded-full blur-2xl"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
-              />
-            )}
-          </motion.div>
-        </div>
-
-        <div className="h-64 overflow-y-auto border border-gray-300 p-4 rounded mb-4">
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`p-2 rounded-lg my-2 ${msg.type === "user"
-                  ? "bg-blue-500 text-white ml-auto max-w-xs"
-                  : "bg-green-500 text-white mr-auto max-w-xs"
+            <div className={`flex items-center gap-2 ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}>
+              {msg.type === 'ai' ? (
+                <FaRobot className="text-gray-600 text-xl" />
+              ) : (
+                <IoPerson className="text-blue-500 text-xl" />
+              )}
+              <div
+                className={`p-3 rounded-lg max-w-xs ${
+                  msg.type === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'
                 }`}
-            >
-              {msg.text}
+              >
+                {msg.text}
+              </div>
             </div>
-          ))}
-          {isThinking && <ThinkingBubble />} {/* Show animation when AI is thinking */}
-        </div>
-        <div className="flex flex-col space-y-4">
-          <button
-            onClick={handleStartListening}
-            className={`w-full px-4 py-2 text-white rounded-md ${isListening ? "bg-red-500" : "bg-green-500"
-              }`}
-          >
-            {isListening ? "Listening..." : "🎤 Speak to J.A.R.V.I.S"}
-          </button>
-          <input
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder="Type here (optional)..."
-            className="w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <button
-            onClick={() => handleSend(userInput)}
-            className="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition"
-          >
-            Send
-          </button>
-        </div>
+          </motion.div>
+        ))}
+
+        {/* Thinking Indicator */}
+        {isThinking && (
+          <div className="flex justify-center">
+            <div className="bg-gray-300 p-2 rounded-full animate-pulse">Thinking...</div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Chat Input */}
+      <div className="bg-white p-4 flex items-center gap-2 border-t">
+        <button
+          onClick={handleStartListening}
+          className={`p-3 rounded-full ${isListening ? 'bg-red-500' : 'bg-gray-300'} hover:bg-gray-400`}
+        >
+          <BsMicFill className="text-white text-lg" />
+        </button>
+        <input
+  type="text"
+  value={userInput}
+  onChange={(e) => setUserInput(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter') {
+      handleSend(userInput);
+    }
+  }}
+  placeholder="Type a message..."
+  className="flex-1 border rounded-lg p-3 focus:outline-none"
+/>
+
+        <button
+          onClick={() => handleSend(userInput)}
+          className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+        >
+          <BsSend />
+        </button>
       </div>
     </div>
   );
