@@ -14,9 +14,9 @@ const ElectricalComponent = () => {
     socketCurrent.onopen = () => {
       setIsConnectedCurrent(true);
       console.log('Current WebSocket connected');
-  const randomData = { current: (Math.random() * 10).toFixed(2), voltage: (Math.random() * 240).toFixed(2) };
-        setCurrentValues(randomData);
-     
+      const randomData = { current: (Math.random() * 10).toFixed(2), voltage: (Math.random() * 240).toFixed(2) };
+      setCurrentValues(randomData);
+
     };
 
     socketCurrent.onmessage = (event) => {
@@ -81,17 +81,17 @@ const ElectricalComponent = () => {
       {/* Professional Disclaimer */}
       <div className="mt-4 p-4 bg-gray-100 rounded-lg border border-gray-300">
         <p className="text-sm text-gray-700">
-        <strong>Note:</strong> The current and voltage readings displayed are mock values, used to demonstrate Jarvis' ability to interact with and process household electrical data. For privacy reasons, Jarvis does not display any of its currently integrated household system values.
-<br />
-An interactive bulb in the chat interface further showcases Jarvis' natural language processing (NLP) capabilities integrated with hardware.
-<br />
-In addition to understanding commands like "Turn on my switch," Jarvis also functions as an AI chatbot, capable of engaging in regular conversations and responding to a wide variety of inquiries.
-<br />
-Jarvis can process speech-to-text multimodal commands and is equipped with a voice module to engage in spoken conversations, enhancing its interactivity.
-<br />
-<br />
-  To see Jarvis in action, check out this demonstration video:
-            <a href="https://youtu.be/cnM65i1Fg2k?si=w5gKMcFYzeEuqPs7" className="text-blue-500 underline ml-1" target="_blank" rel="noopener noreferrer">
+          <strong>Note:</strong> The current and voltage readings displayed are mock values, used to demonstrate Jarvis' ability to interact with and process household electrical data. For privacy reasons, Jarvis does not display any of its currently integrated household system values.
+          <br />
+          An interactive bulb in the chat interface further showcases Jarvis' natural language processing (NLP) capabilities integrated with hardware.
+          <br />
+          In addition to understanding commands like "Turn on my switch," Jarvis also functions as an AI chatbot, capable of engaging in regular conversations and responding to a wide variety of inquiries.
+          <br />
+          Jarvis can process speech-to-text multimodal commands and is equipped with a voice module to engage in spoken conversations, enhancing its interactivity.
+          <br />
+          <br />
+          To see Jarvis in action, check out this demonstration video:
+          <a href="https://youtu.be/cnM65i1Fg2k?si=w5gKMcFYzeEuqPs7" className="text-blue-500 underline ml-1" target="_blank" rel="noopener noreferrer">
             this demonstration video
           </a>.
         </p>
